@@ -138,22 +138,24 @@ int ns_max = 50;
 int histogram[ns_max];
 memset(histogram, 0, sizeof(histogram));
 
-
-volatile uint64_t rdtsc_value;
-
+/*
 for(int i = 0; i < samples; i++){
-    rdtsc_value = rdtsc();
-}
 
-clock_gettime(CLOCK_MONOTONIC, &end);
+    uint64_t t1 = rdtsc();
+    uint64_t t2 = rdtsc();
 
+    uint64_t ticks = t2 - t1;
 
-long long ns = (end.tv_sec - start.tv_sec) * 1000000000LL + (end.tv_nsec - start.tv_nsec);
+    uint64_t hz = 3686399000 ;
 
-    if(ns >= 0 && ns < ns_max){
+    uint64_t ns =
+        ticks * 1000000000LL / hz;
+
+    if(ns < ns_max){
         histogram[ns]++;
     }
-
+}
+*/
 
 
 /* KLOKKE2
@@ -171,25 +173,25 @@ for(int i = 0; i < samples; i++){
 }
 */
 
-/* KLOKKE3
+    // KLOKKE3
 
-for (int i = 0; i < samples; i++) {
-        times_value = times(&usage);
-    }
+long ticks_per_second = sysconf(_SC_CLK_TCK);
 
-    clock_gettime(CLOCK_MONOTONIC, &end);
-    clock_t time1 = times(&usage1);
-    clock_t time2 = times(&usage2);
+for(int i = 0; i < samples; i++){
 
-     long long ns =
-        (end.tv_sec - start.tv_sec) * 1000000000LL
-        + (end.tv_nsec - start.tv_nsec);
+    clock_t t1 = times(&usage1);
+    clock_t t2 = times(&usage2);
+
+    long long ns =
+        (long long)(t2 - t1) * 1000000000LL
+        / ticks_per_second;
 
     if(ns >= 0 && ns < ns_max){
         histogram[ns]++;
     }
+}
 
-*/
+
 
 
 for(int i = 0; i < ns_max; i++){
