@@ -7,6 +7,8 @@
 #include <sys/times.h>
 #include <stdint.h>
 #include <string.h>
+#include <x86intrin.h>
+
 
 struct timespec start;
 struct timespec end;
@@ -20,18 +22,36 @@ volatile clock_t times_value;
 const int samples = 10*1000*1000;
 
 
+ /*
 uint64_t rdtsc(void){
     uint64_t val;
     asm volatile("isb; mrs %0, cntvct_el0; isb; " : "=r"(val) :: "memory"); 
     // You can check the current CPU frequency with $sudo dmesg | grep MHz
     return val;
 }
+    */
+
+uint64_t rdtsc(void)
+{
+    return __rdtsc();
+}
+
 
 uint64_t t1;
 uint64_t t2; 
 
+//#Klokke1
+
 void rdtsc_maaling(void){
 clock_gettime(CLOCK_MONOTONIC, &start); 
+/*
+for(int i = 0; i < samples; i++){
+    rdtsc();
+}
+*/
+
+
+
 volatile uint64_t rdtsc_value;
 
 for(int i = 0; i < samples; i++){
@@ -47,8 +67,6 @@ double lat = (double)elapsed / samples;
      t2 = rdtsc();
 uint64_t resticks = t2 - t1;
 
-
-// FINN PÅ RASBERRY
 uint64_t hz = 3686399000 ;
 uint64_t res = (resticks*1000000000LL) / hz;
 
@@ -58,6 +76,8 @@ printf("Latency for rdtsc: %.3f ns\n", lat);
 //printf("Resolusjon for rdtsc: %d ns\n", res);
 printf("Resolusjon for rdtsc: %" PRIu64 " ns\n", res);
 }
+
+//#Klokke2
 
 void clock_measure(void){
 clock_gettime(CLOCK_MONOTONIC, &start); 
@@ -112,21 +132,35 @@ long ticks_per_second = sysconf(_SC_CLK_TCK);
     printf("Resolusjon for times: %lld ns\n", ns);
 }
 
+
 void histogram(void){
 int ns_max = 50;
 int histogram[ns_max];
 memset(histogram, 0, sizeof(histogram));
 
+
+volatile uint64_t rdtsc_value;
+
 for(int i = 0; i < samples; i++){
-    
-    // t1 = timer()
-    // t2 = timer()
+    rdtsc_value = rdtsc();
+}
+
+clock_gettime(CLOCK_MONOTONIC, &end);
+
+
+long long ns = (end.tv_sec - start.tv_sec) * 1000000000LL + (end.tv_nsec - start.tv_nsec);
+
+    if(ns >= 0 && ns < ns_max){
+        histogram[ns]++;
+    }
+
+
+
+/* KLOKKE2
+
+for(int i = 0; i < samples; i++){
     clock_gettime(CLOCK_MONOTONIC, &t3);
     clock_gettime(CLOCK_MONOTONIC, &t4);
-
-
-    // int ns = // (t2 - t1) * ??
-    
     long long ns =
     (t4.tv_sec - t3.tv_sec) * 1000000000LL
     + (t4.tv_nsec - t3.tv_nsec);
@@ -135,6 +169,28 @@ for(int i = 0; i < samples; i++){
         histogram[ns]++;
     }
 }
+*/
+
+/* KLOKKE3
+
+for (int i = 0; i < samples; i++) {
+        times_value = times(&usage);
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    clock_t time1 = times(&usage1);
+    clock_t time2 = times(&usage2);
+
+     long long ns =
+        (end.tv_sec - start.tv_sec) * 1000000000LL
+        + (end.tv_nsec - start.tv_nsec);
+
+    if(ns >= 0 && ns < ns_max){
+        histogram[ns]++;
+    }
+
+*/
+
 
 for(int i = 0; i < ns_max; i++){
     printf("%d\n", histogram[i]);
